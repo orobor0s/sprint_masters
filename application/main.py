@@ -1,9 +1,8 @@
+import json
 import requests
 import urllib.parse
 
-ipapi_url = "https://ipapi.co/json/"
-
-def getIPData(url):
+def getIPData():
     '''Fetch the client's IP data'''
 
     # Need a User-Agent header in the request to circumvent rate limiting
@@ -11,14 +10,43 @@ def getIPData(url):
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
 
-    replydata = requests.get(url, headers=headers)
+    replydata = requests.get("https://ipapi.co/json/", headers=headers)
     json_data = replydata.json()
     json_status = replydata.status_code
 
     if json_status == 200:
         return json_data
 
-clientData = getIPData(ipapi_url)
+def wrapLon(lon):
+    '''Wrap longitude to support bboxes that cross the international date line'''
+    return ((lon + 180) % 360) - 180
+
+def getEONETData(scale=10):
+    '''Fetch EONET event data based on the client's location and customized parameters'''
+
+    # Calculate coordinate pair to bound bbox
+    lon, lat = clientData["longitude"], clientData["latitude"]
+    min_lon, max_lon = wrapLon(lon - scale), wrapLon(lon + scale)
+    min_lat, max_lat = max(-90, lat - scale), min(90, lat + scale)
+    bbox = ",".join(map(str, [min_lon, max_lat, max_lon, min_lat]))
+
+    # Generate API query
+    params = {"bbox":bbox}
+    query_string = urllib.parse.urlencode(params, quote_via=urllib.parse.quote, safe=",")
+    url = f"https://eonet.gsfc.nasa.gov/api/v3/events?{query_string}"
+    
+    replydata = requests.get(url)
+    json_data = replydata.json()
+    json_status = replydata.status_code
+
+    if json_status == 200:
+       return json_data
+    else:
+        print("Error message: " + json_data["message"])
+
+clientData = getIPData()
+if clientData != None:
+    print(json.dumps(getEONETData(), indent=4))
 
 # route_url = "https://graphhopper.com/api/1/route?"
 # key = "9b36e834-2f7d-494e-bc6c-bee36b11090e"
