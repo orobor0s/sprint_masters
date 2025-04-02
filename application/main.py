@@ -8,6 +8,7 @@ import urllib.parse
 ipapi_url = "https://ipapi.co/json"
 eonet_source_url = "https://eonet.gsfc.nasa.gov/api/v3/sources"
 eonet_categories_url = "https://eonet.gsfc.nasa.gov/api/v3/categories"
+eonet_magnitudes_url = "https://eonet.gsfc.nasa.gov/api/v3/magnitudes"
 eonet_query_url = "https://eonet.gsfc.nasa.gov/api/v3/events/geojson?"
 default_start_date = (datetime.today() - timedelta(days=30)).strftime('%Y-%m-%d')
 default_end_date = datetime.today().strftime('%Y-%m-%d')
@@ -82,6 +83,20 @@ def sanitize_date_range(start, end):
         return {"start": start, "end": end}
     return {}
 
+def sanitize_magID(magID):
+    '''Sanitize magID'''
+    if magID and magID in magnitudes:
+        return {"magID": magID}
+    else:
+        return {}
+
+def sanitize_magnitudes(mag, keyword):
+    '''Sanitize magnitudes'''
+    if mag and is_float(mag) and float(mag) > 0:
+        return {keyword: mag}
+    else:
+        return {}
+    
 def sanitize_scale(scale):
     '''Sanitize scale input'''
     if is_float(scale) and float(scale) >= 0:
@@ -100,7 +115,17 @@ def generate_eonet_dictionaries(url,keyword):
         data[item_id] = item
     return data
 
-def generate_eonet_query(source="",category="",status="",limit="",start=default_start_date,end=default_end_date,scale=10):
+def generate_eonet_query(
+        source="",
+        category="",
+        status="",
+        limit="",
+        start=default_start_date,
+        end=default_end_date,
+        magID="",
+        magMin="",
+        magMax="",
+        scale=10):
     '''Generates EONET query url based on sanitized user input'''
     # Set parameters
     params = {}
@@ -109,6 +134,16 @@ def generate_eonet_query(source="",category="",status="",limit="",start=default_
     params.update(sanitize_status(status))
     params.update(sanitize_limit(limit))
     params.update(sanitize_date_range(start, end))
+    params.update(sanitize_magID(magID))
+    magMin_dict = sanitize_magnitudes(magMin, "magMin")
+    magMax_dict = sanitize_magnitudes(magMax, "magMax")
+    if magMin_dict and magMax_dict:
+        if float(magMax_dict["magMax"]) >= float(magMin_dict["magMin"]):
+            params.update(magMin_dict)
+            params.update(magMax_dict)
+    else:
+        params.update(magMin_dict)
+        params.update(magMax_dict)
     params.update(sanitize_scale(scale))
     
     # Generate API query
@@ -146,9 +181,21 @@ def get_eonet_data(url):
 client_data = get_ip_data()
 sources = generate_eonet_dictionaries(eonet_source_url, "sources")
 categories = generate_eonet_dictionaries(eonet_categories_url, "categories")
+magnitudes = generate_eonet_dictionaries(eonet_magnitudes_url, "magnitudes")
+
 
 if client_data != None:
-    query_url = generate_eonet_query(source="IRWIN,abfire,test",category="drought,wildfires",status="all",limit="20",start="2000-01-01",end=default_end_date,scale=20)
+    query_url = generate_eonet_query(
+        source="IRWIN,abfire,test",
+        category="drought,wildfires",
+        status="all",
+        limit="20",
+        start="2000-01-01",
+        end=default_end_date,
+        magID="ac",
+        magMin="0",
+        magMax="100",
+        scale=20)
     print(query_url)
     print(json.dumps(get_eonet_data(query_url), indent=4))
 
