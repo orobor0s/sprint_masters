@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import json
 import requests
 import urllib.parse
+import streamlit as st
 
 
 # Variables
@@ -200,3 +201,47 @@ if client_data != None:
     print(json.dumps(get_eonet_data(query_url), indent=4))
 
 # Placeholder for GUI
+
+# Streamlit UI
+st.title("EONET Natural Events Viewer")
+
+# Get user location
+display_ip_data = get_ip_data()
+if display_ip_data:
+    st.write(f"Your detected location: {display_ip_data.get('city', 'Unknown')}, {display_ip_data.get('region', 'Unknown')}, {display_ip_data.get('country_name', 'Unknown')}")
+
+# Fetch data based on the query
+query_url = generate_eonet_query(
+    source="IRWIN,abfire,test",
+    category="drought,wildfires",
+    status="all",
+    limit="20",
+    start="2000-01-01",
+    end=default_end_date,
+    magID="ac",
+    magMin="0",
+    magMax="100",
+    scale=20)
+
+st.write(f"Query URL: {query_url}")  # Show the API request URL
+
+data = get_eonet_data(query_url)
+
+if data and "features" in data:
+    for event in data["features"][:5]:  # Display first 5 events
+        properties = event["properties"]
+        geometry = event["geometry"]
+
+        st.subheader(properties["title"])
+        st.write(f"Category: {properties.get('categories', 'Unknown')}")
+        st.write(f"Date: {properties['date']}")
+        if "coordinates" in geometry:
+            st.write(f"Location: {geometry['coordinates']}")
+        st.write(f"[More Info]({properties['link']})")
+        st.markdown("---")
+else:
+    st.error("No data found or API request failed.")
+
+# Display raw JSON data
+st.subheader("Raw JSON Data")
+st.json(data)
