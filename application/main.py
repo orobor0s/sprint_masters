@@ -50,18 +50,18 @@ def sanitize_list_input(input,keyword):
         valid = []
         errors = []
         if keyword == "sources":
-            input = input.upper()
             key = "source"
         else:
             key = "category"
         input_check = input.split(',')
+        check = globals().get(keyword, "Variable not found")
         for item in input_check:
-            if item in globals().get(keyword, "Variable not found"):
+            if item in check:
                 valid.append(item)
             else:
                 errors.append(item)
         if errors:
-                print(f"{keyword} input errors: {errors}")
+                print(f"{keyword} input errors: {errors}, {keyword} must be in {check.keys()}")
         if valid:
             return {key: ",".join(valid)}
         else:
@@ -71,36 +71,48 @@ def sanitize_list_input(input,keyword):
 
 def sanitize_status(status):
     '''Sanitize status input'''
-    return {"status": status} if status in {"open", "closed", "all"} else {}
+    if status:
+        if status in {"open", "closed", "all"}:
+            return {"status": status}
+        print(f"Status input error: {status}, status must be open, closed, or all (leaving status blank defaults to open)")
+    return {}
 
 def sanitize_limit(limit):
     '''Sanitize limit input'''
-    return {"limit": limit} if limit.isdigit() else {}
+    if limit:
+        if limit.isdigit():
+            return {"limit": limit}
+        print(f"Limit input error: {limit}, limit must be a positive integer")
+    return {}
 
 def sanitize_date_range(start, end):
     '''Sanitize date range input'''
     if is_valid_date(start) and is_valid_date(end) and end >= start:
         return {"start": start, "end": end}
+    print(f"Date range input error: {start} - {end}, each date must be in the YYYY-MM-DD format and the start date must be before or equal to the end date")
     return {}
 
 def sanitize_magID(magID):
     '''Sanitize magID'''
-    if magID and magID in magnitudes:
-        return {"magID": magID}
-    else:
-        return {}
+    if magID:
+        if magID in magnitudes:
+            return {"magID": magID}
+        print(f"magID input error: {magID}, magID must be in {magnitudes.keys()}")
+    return {}
 
 def sanitize_magnitudes(mag, keyword):
     '''Sanitize magnitudes'''
-    if mag and is_float(mag) and float(mag) > 0:
-        return {keyword: mag}
-    else:
-        return {}
+    if mag:
+        if is_float(mag) and float(mag) >= 0:
+            return {keyword: mag}
+        print(f"{keyword} input error: {mag}, mag must be a float or integer that is greater than or equal to 0")
+    return {}
     
 def sanitize_scale(scale):
     '''Sanitize scale input'''
     if is_float(scale) and float(scale) >= 0:
         return {"bbox": calc_bbox(scale)}
+    print(f"Scale input error: {scale}, scale must be a float or integer that is greater than or equal to 0")
     return {}
 
 
@@ -186,9 +198,25 @@ magnitudes = generate_eonet_dictionaries(eonet_magnitudes_url, "magnitudes")
 
 if client_data != None:
     query_url = generate_eonet_query(
-        source="IRWIN,abfire,test",
-        category="drought,wildfires",
-        status="all",
+        source="IRWIN,ABFIRE,test",
+        category="drought,wildfires,test",
+        status="alls",
+        limit="-1",
+        start="2000-01-012",
+        end="2026-002-12",
+        magID="acdsda",
+        magMin="-1",
+        magMax="-2",
+        scale=-1)
+    print(query_url)
+    print(json.dumps(get_eonet_data(query_url), indent=4))
+
+'''
+if client_data != None:
+    query_url = generate_eonet_query(
+        source="IRWIN,ABFIRE,test",
+        category="drought,wildfires,test",
+        status="alls",
         limit="20",
         start="2000-01-01",
         end=default_end_date,
@@ -198,5 +226,5 @@ if client_data != None:
         scale=20)
     print(query_url)
     print(json.dumps(get_eonet_data(query_url), indent=4))
-
+'''
 # Placeholder for GUI
