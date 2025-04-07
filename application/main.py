@@ -153,6 +153,8 @@ def generate_eonet_query(
         if float(magMax_dict["magMax"]) >= float(magMin_dict["magMin"]):
             params.update(magMin_dict)
             params.update(magMax_dict)
+        else:
+            print(f"magMax {magMax} must be greater than or equal to magMin {magMin}")
     else:
         params.update(magMin_dict)
         params.update(magMax_dict)
@@ -198,25 +200,9 @@ magnitudes = generate_eonet_dictionaries(eonet_magnitudes_url, "magnitudes")
 
 if client_data != None:
     query_url = generate_eonet_query(
-        source="IRWIN,ABFIRE,test",
-        category="drought,wildfires,test",
-        status="alls",
-        limit="-1",
-        start="2000-01-012",
-        end="2026-002-12",
-        magID="acdsda",
-        magMin="-1",
-        magMax="-2",
-        scale=-1)
-    print(query_url)
-    print(json.dumps(get_eonet_data(query_url), indent=4))
-
-'''
-if client_data != None:
-    query_url = generate_eonet_query(
-        source="IRWIN,ABFIRE,test",
-        category="drought,wildfires,test",
-        status="alls",
+        source="IRWIN,ABFIRE",
+        category="drought,wildfires",
+        status="all",
         limit="20",
         start="2000-01-01",
         end=default_end_date,
@@ -226,5 +212,5 @@ if client_data != None:
         scale=20)
     print(query_url)
     print(json.dumps(get_eonet_data(query_url), indent=4))
-'''
+
 # Placeholder for GUI
