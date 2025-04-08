@@ -167,6 +167,7 @@ def generate_eonet_query(
 
 
 # API queries
+@st.cache_data
 def get_ip_data():
     '''Gets the client's IP data'''
     # Needs a User-Agent header in the request to circumvent rate limiting
@@ -180,6 +181,8 @@ def get_ip_data():
 
     if json_status == 200:
         return json_data
+    else:
+        print("Error message: " + json_data["message"])
 
 def get_eonet_data(url):
     '''Gets EONET event data based on the client's location and customized parameters'''
@@ -193,49 +196,51 @@ def get_eonet_data(url):
         print("Error message: " + json_data["message"])
 
 
+# Streamlit UI
+st.title("EONET Natural Events Viewer")
+
+
 client_data = get_ip_data()
 sources = generate_eonet_dictionaries(eonet_source_url, "sources")
 categories = generate_eonet_dictionaries(eonet_categories_url, "categories")
 magnitudes = generate_eonet_dictionaries(eonet_magnitudes_url, "magnitudes")
 
-
-if client_data != None:
-    query_url = generate_eonet_query(
-        source="IRWIN,ABFIRE",
-        category="drought,wildfires",
-        status="all",
-        limit="20",
-        start="2000-01-01",
-        end=default_end_date,
-        magID="ac",
-        magMin="0",
-        magMax="100",
-        scale=20)
-    print(query_url)
-    print(json.dumps(get_eonet_data(query_url), indent=4))
-
-# Placeholder for GUI
-
-# Streamlit UI
-st.title("EONET Natural Events Viewer")
-
 # Get user location
-display_ip_data = get_ip_data()
-if display_ip_data:
-    st.write(f"Your detected location: {display_ip_data.get('city', 'Unknown')}, {display_ip_data.get('region', 'Unknown')}, {display_ip_data.get('country_name', 'Unknown')}")
+if client_data:
+   st.write(f"Your detected location: {client_data.get('city', 'Unknown')}, {client_data.get('region', 'Unknown')}, {client_data.get('country_name', 'Unknown')}")
 
-# Fetch data based on the query
-query_url = generate_eonet_query(
-    source="IRWIN,abfire,test",
-    category="drought,wildfires",
-    status="all",
-    limit="20",
-    start="2000-01-01",
-    end=default_end_date,
-    magID="ac",
-    magMin="0",
-    magMax="100",
-    scale=20)
+# User inputs
+with st.sidebar:
+    with st.form("Inputs"):
+        source_input = st.multiselect("Sources", list(sources.keys()), default=None, format_func=lambda k: sources[k]["title"])
+        category_input = st.multiselect("Categories", list(categories.keys()), default=None, format_func=lambda k: categories[k]["title"])
+        status_input = st.selectbox("Status", ["open","closed","all"])
+        limit_input = st.number_input("Limit", min_value=1, value=5)
+        start_input = st.date_input("Start Date", value=default_start_date, format="YYYY-MM-DD")
+        end_input = st.date_input("End Date", value=default_end_date, format="YYYY-MM-DD")
+        magID_input = st.selectbox("magID", list(magnitudes.keys()), format_func=lambda k: magnitudes[k]["name"])
+        magMin_input = st.number_input("magMin", min_value=0.0, value=0.0, step=0.01)
+        magMax_input = st.number_input("magMax", min_value=0.0, value=10.0, step=0.01)
+        scale_input = st.number_input("Limit", min_value=1.0, value=10.0, step=0.01)
+
+        submitted = st.form_submit_button("Submit")
+        if submitted:
+            source_input = ",".join(source_input)
+            category_input = ",".join(category_input)
+            query_url = generate_eonet_query(
+                source=source_input,
+                category=category_input,
+                status=status_input,
+                limit=str(limit_input),
+                start=str(start_input),
+                end=str(end_input),
+                magID=str(magID_input),
+                magMin=str(magMin_input),
+                magMax=str(magMax_input),
+                scale=str(scale_input)
+            )
+            st.write(query_url)
+        
 
 st.write(f"Query URL: {query_url}")  # Show the API request URL
 
