@@ -13,7 +13,9 @@ eonet_magnitudes_url = "https://eonet.gsfc.nasa.gov/api/v3/magnitudes"
 eonet_query_url = "https://eonet.gsfc.nasa.gov/api/v3/events/geojson?"
 default_start_date = (datetime.today() - timedelta(days=30)).strftime('%Y-%m-%d')
 default_end_date = datetime.today().strftime('%Y-%m-%d')
-
+submitted = ""
+query_url = ""
+global_errors = []
 
 # Utility
 def is_float(n):
@@ -62,7 +64,7 @@ def sanitize_list_input(input,keyword):
             else:
                 errors.append(item)
         if errors:
-                print(f"{keyword} input errors: {errors}, {keyword} must be in {check.keys()}")
+                global_errors.append(f"{keyword} input errors: {errors}, {keyword} must be in {check.keys()}")
         if valid:
             return {key: ",".join(valid)}
         else:
@@ -75,22 +77,22 @@ def sanitize_status(status):
     if status:
         if status in {"open", "closed", "all"}:
             return {"status": status}
-        print(f"Status input error: {status}, status must be open, closed, or all (leaving status blank defaults to open)")
+        global_errors.append(f"Status input error: {status}, status must be open, closed, or all (leaving status blank defaults to open)")
     return {}
 
 def sanitize_limit(limit):
     '''Sanitize limit input'''
     if limit:
-        if limit.isdigit():
+        if limit > 0 and int(limit):
             return {"limit": limit}
-        print(f"Limit input error: {limit}, limit must be a positive integer")
+        global_errors.append(f"Limit input error: {limit}, limit must be a positive integer")
     return {}
 
 def sanitize_date_range(start, end):
     '''Sanitize date range input'''
     if is_valid_date(start) and is_valid_date(end) and end >= start:
         return {"start": start, "end": end}
-    print(f"Date range input error: {start} - {end}, each date must be in the YYYY-MM-DD format and the start date must be before or equal to the end date")
+    global_errors.append(f"Date range input error: {start} - {end}, each date must be in the YYYY-MM-DD format and the start date must be before or equal to the end date")
     return {}
 
 def sanitize_magID(magID):
@@ -98,7 +100,7 @@ def sanitize_magID(magID):
     if magID:
         if magID in magnitudes:
             return {"magID": magID}
-        print(f"magID input error: {magID}, magID must be in {magnitudes.keys()}")
+        global_errors.append(f"magID input error: {magID}, magID must be in {magnitudes.keys()}")
     return {}
 
 def sanitize_magnitudes(mag, keyword):
@@ -106,14 +108,15 @@ def sanitize_magnitudes(mag, keyword):
     if mag:
         if is_float(mag) and float(mag) >= 0:
             return {keyword: mag}
-        print(f"{keyword} input error: {mag}, mag must be a float or integer that is greater than or equal to 0")
+        global_errors.append(f"{keyword} input error: {mag}, mag must be a float or integer that is greater than or equal to 0")
     return {}
     
 def sanitize_scale(scale):
     '''Sanitize scale input'''
-    if is_float(scale) and float(scale) >= 0:
-        return {"bbox": calc_bbox(scale)}
-    print(f"Scale input error: {scale}, scale must be a float or integer that is greater than or equal to 0")
+    if scale:
+        if is_float(scale) and float(scale) >= 0:
+            return {"bbox": calc_bbox(scale)}
+        global_errors.append(f"Scale input error: {scale}, scale must be a float or integer that is greater than or equal to 0")
     return {}
 
 
@@ -128,6 +131,7 @@ def generate_eonet_dictionaries(url,keyword):
         data[item_id] = item
     return data
 
+@st.cache_data
 def generate_eonet_query(
         source="",
         category="",
@@ -155,7 +159,7 @@ def generate_eonet_query(
             params.update(magMin_dict)
             params.update(magMax_dict)
         else:
-            print(f"magMax {magMax} must be greater than or equal to magMin {magMin}")
+            global_errors.append(f"magMax {magMax} must be greater than or equal to magMin {magMin}")
     else:
         params.update(magMin_dict)
         params.update(magMax_dict)
@@ -176,14 +180,16 @@ def get_ip_data():
     }
 
     reply_data = requests.get(f"{ipapi_url}", headers=headers)
-    json_data = reply_data.json()
-    json_status = reply_data.status_code
+    if str(reply_data) == "<Response [200]>":
+        json_data = reply_data.json()
+        json_status = reply_data.status_code
 
-    if json_status == 200:
-        return json_data
+        if json_status == 200:
+            return json_data
     else:
-        print("Error message: " + json_data["message"])
+        st.error("ipapi API request failed.")
 
+@st.cache_data
 def get_eonet_data(url):
     '''Gets EONET event data based on the client's location and customized parameters'''
     reply_data = requests.get(url)
@@ -205,9 +211,6 @@ sources = generate_eonet_dictionaries(eonet_source_url, "sources")
 categories = generate_eonet_dictionaries(eonet_categories_url, "categories")
 magnitudes = generate_eonet_dictionaries(eonet_magnitudes_url, "magnitudes")
 
-# Get user location
-if client_data:
-   st.write(f"Your detected location: {client_data.get('city', 'Unknown')}, {client_data.get('region', 'Unknown')}, {client_data.get('country_name', 'Unknown')}")
 
 # User inputs
 with st.sidebar:
@@ -231,34 +234,49 @@ with st.sidebar:
                 source=source_input,
                 category=category_input,
                 status=status_input,
-                limit=str(limit_input),
+                limit=limit_input,
                 start=str(start_input),
                 end=str(end_input),
-                magID=str(magID_input),
-                magMin=str(magMin_input),
-                magMax=str(magMax_input),
-                scale=(scale_input)
+                magID=magID_input,
+                magMin=magMin_input,
+                magMax=magMax_input,
+                scale=scale_input
             )        
 
-            st.write(f"Query URL: {query_url}")  # Show the API request URL
+if submitted:
+    # Output errors
+    for error in global_errors:
+        st.error(error)
+    # Get user location
+    if client_data:
+        st.write(f"Your detected location: {client_data.get('city', 'Unknown')}, {client_data.get('region', 'Unknown')}, {client_data.get('country_name', 'Unknown')}")
 
-            data = get_eonet_data(query_url)
+        st.write(f"Query URL: {query_url}")  # Show the API request URL
 
-            if data and "features" in data:
-                for event in data["features"][:5]:  # Display first 5 events
-                    properties = event["properties"]
+        data = get_eonet_data(query_url)
+
+        if data and "features" in data:
+            event_set = set()
+            for event in data["features"]:
+                properties = event["properties"]
+                if properties["id"] not in event_set:
+                    event_set.add(properties["id"])
                     geometry = event["geometry"]
 
                     st.subheader(properties["title"])
-                    st.write(f"Category: {properties.get('categories', 'Unknown')}")
-                    st.write(f"Date: {properties['date']}")
-                    if "coordinates" in geometry:
+                    st.write(f"Category: {properties["categories"][0]["title"]}")
+                    try:
+                        st.write(f"Date: {properties['date']}")
                         st.write(f"Location: {geometry['coordinates']}")
+                    except:
+                        st.write(f"Most recent date: {properties["geometryDates"][-1]}")
+                        st.write(f"Last location: {geometry['coordinates'][-1]}")
+                        
                     st.write(f"[More Info]({properties['link']})")
                     st.markdown("---")
-            else:
-                st.error("No data found or API request failed.")
+        else:
+            st.error("No data found or API request failed.")
 
-            # Display raw JSON data
-            st.subheader("Raw JSON Data")
-            st.json(data)
+        # Display raw JSON data
+        st.subheader("Raw JSON Data")
+        st.json(data)
