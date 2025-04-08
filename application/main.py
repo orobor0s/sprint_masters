@@ -39,8 +39,8 @@ def wrap_lon(lon):
 def calc_bbox(scale):
     '''Calculates coordinate pair to bound bbox based on the client's location and scale setting'''
     lon, lat = client_data["longitude"], client_data["latitude"]
-    min_lon, max_lon = wrap_lon(lon - scale), wrap_lon(lon + scale)
-    min_lat, max_lat = max(-90, lat - scale), min(90, lat + scale)
+    min_lon, max_lon = wrap_lon(float(lon) - scale), wrap_lon(float(lon) + scale)
+    min_lat, max_lat = max(-90, float(lat) - scale), min(90, float(lat) + scale)
     return ",".join(map(str, [min_lon, max_lat, max_lon, min_lat]))
 
 
@@ -215,13 +215,13 @@ with st.sidebar:
         source_input = st.multiselect("Sources", list(sources.keys()), default=None, format_func=lambda k: sources[k]["title"])
         category_input = st.multiselect("Categories", list(categories.keys()), default=None, format_func=lambda k: categories[k]["title"])
         status_input = st.selectbox("Status", ["open","closed","all"])
-        limit_input = st.number_input("Limit", min_value=1, value=5)
+        limit_input = st.number_input("Limit", min_value=1, value=None, placeholder="5")
         start_input = st.date_input("Start Date", value=default_start_date, format="YYYY-MM-DD")
         end_input = st.date_input("End Date", value=default_end_date, format="YYYY-MM-DD")
-        magID_input = st.selectbox("magID", list(magnitudes.keys()), format_func=lambda k: magnitudes[k]["name"])
-        magMin_input = st.number_input("magMin", min_value=0.0, value=0.0, step=0.01)
-        magMax_input = st.number_input("magMax", min_value=0.0, value=10.0, step=0.01)
-        scale_input = st.number_input("Limit", min_value=1.0, value=10.0, step=0.01)
+        magID_input = st.selectbox("magID", list(magnitudes.keys()), index=None, format_func=lambda k: magnitudes[k]["name"], placeholder="Choose an option")
+        magMin_input = st.number_input("magMin", min_value=0.0, value=None, placeholder="0.0", step=0.01)
+        magMax_input = st.number_input("magMax", min_value=0.0, value=None, placeholder="10.0", step=0.01)
+        scale_input = st.number_input("Scale", min_value=1.0, value=None, placeholder="10.0", step=0.01)
 
         submitted = st.form_submit_button("Submit")
         if submitted:
@@ -237,30 +237,28 @@ with st.sidebar:
                 magID=str(magID_input),
                 magMin=str(magMin_input),
                 magMax=str(magMax_input),
-                scale=str(scale_input)
-            )
-            st.write(query_url)
-        
+                scale=(scale_input)
+            )        
 
-st.write(f"Query URL: {query_url}")  # Show the API request URL
+            st.write(f"Query URL: {query_url}")  # Show the API request URL
 
-data = get_eonet_data(query_url)
+            data = get_eonet_data(query_url)
 
-if data and "features" in data:
-    for event in data["features"][:5]:  # Display first 5 events
-        properties = event["properties"]
-        geometry = event["geometry"]
+            if data and "features" in data:
+                for event in data["features"][:5]:  # Display first 5 events
+                    properties = event["properties"]
+                    geometry = event["geometry"]
 
-        st.subheader(properties["title"])
-        st.write(f"Category: {properties.get('categories', 'Unknown')}")
-        st.write(f"Date: {properties['date']}")
-        if "coordinates" in geometry:
-            st.write(f"Location: {geometry['coordinates']}")
-        st.write(f"[More Info]({properties['link']})")
-        st.markdown("---")
-else:
-    st.error("No data found or API request failed.")
+                    st.subheader(properties["title"])
+                    st.write(f"Category: {properties.get('categories', 'Unknown')}")
+                    st.write(f"Date: {properties['date']}")
+                    if "coordinates" in geometry:
+                        st.write(f"Location: {geometry['coordinates']}")
+                    st.write(f"[More Info]({properties['link']})")
+                    st.markdown("---")
+            else:
+                st.error("No data found or API request failed.")
 
-# Display raw JSON data
-st.subheader("Raw JSON Data")
-st.json(data)
+            # Display raw JSON data
+            st.subheader("Raw JSON Data")
+            st.json(data)
