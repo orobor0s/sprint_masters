@@ -2,8 +2,10 @@ from datetime import datetime, timedelta
 import json
 import requests
 import urllib.parse
+import folium
 import streamlit as st
-
+from streamlit_folium import st_folium
+import webbrowser
 
 # Variables
 ipapi_url = "https://ipapi.co/json"
@@ -201,6 +203,46 @@ def get_eonet_data(url):
     else:
         print("Error message: " + json_data["message"])
 
+# Map
+def generate_folium_map(data):
+    map = folium.Map(location=(client_data["latitude"],client_data["longitude"]), zoom_start=9)
+
+    folium.Marker(
+        (client_data["latitude"],client_data["longitude"]), 
+        popup="User's Location", 
+        tooltip="User's Location", 
+        icon=folium.Icon(color="red", icon="home")
+    ).add_to(map)
+
+    for event in data["features"]:
+            geometry_type = event["geometry"]["type"]
+            coordinates = event["geometry"]["coordinates"]
+            title = event["properties"]["title"]
+
+            coordinates = event["geometry"]["coordinates"]
+            if geometry_type == "Point":
+                location = coordinates[1], coordinates[0]
+                folium.Marker(
+                    location,
+                    popup=title,
+                    tooltip=title,
+                    icon=folium.Icon(color="blue", icon="info-sign")
+                ).add_to(map)
+
+            elif geometry_type == "LineString":
+                line_coords = [(lat, lon) for lon, lat in coordinates]  # Swap [lon, lat] to [lat, lon]
+                folium.PolyLine(
+                    line_coords,
+                    color="blue",
+                    weight=3,
+                    opacity=0.7,
+                    tooltip=title,
+                    popup=folium.Popup(title)
+                ).add_to(map)
+
+    map.save("map.html")
+    webbrowser.open("map.html")
+
 
 # Streamlit UI
 st.title("EONET Natural Events Viewer")
@@ -227,7 +269,8 @@ with st.sidebar:
         scale_input = st.number_input("Scale", min_value=1.0, value=None, placeholder="10.0", step=0.01)
 
         submitted = st.form_submit_button("Submit")
-        if submitted:
+        open_in_map = st.form_submit_button("Open in map")
+        if submitted or open_in_map:
             source_input = ",".join(source_input)
             category_input = ",".join(category_input)
             query_url = generate_eonet_query(
@@ -241,9 +284,10 @@ with st.sidebar:
                 magMin=magMin_input,
                 magMax=magMax_input,
                 scale=scale_input
-            )        
+            )
+            
 
-if submitted:
+if submitted or open_in_map:
     # Output errors
     for error in global_errors:
         st.error(error)
@@ -254,8 +298,12 @@ if submitted:
         st.write(f"Query URL: {query_url}")  # Show the API request URL
 
         data = get_eonet_data(query_url)
+        
+        if open_in_map:
+            generate_folium_map(data)
 
         if data and "features" in data:
+            
             event_set = set()
             for event in data["features"]:
                 properties = event["properties"]
@@ -276,7 +324,8 @@ if submitted:
                     st.markdown("---")
         else:
             st.error("No data found or API request failed.")
-
+        
         # Display raw JSON data
         st.subheader("Raw JSON Data")
         st.json(data)
+        
