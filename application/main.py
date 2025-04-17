@@ -273,7 +273,7 @@ with st.sidebar:
 
         submitted = st.form_submit_button("Submit")
         open_in_map = st.form_submit_button("Open in map")
-        reset = st.form_submit_button("Reset")
+        reset = st.form_submit_button("Reset", on_click=streamlit_js_eval(js_expressions="parent.window.location.reload()"))
         if submitted or open_in_map:
             source_input = ",".join(source_input)
             category_input = ",".join(category_input)
@@ -288,9 +288,7 @@ with st.sidebar:
                 magMin=magMin_input,
                 magMax=magMax_input,
                 scale=scale_input
-            )
-        if reset:
-            streamlit_js_eval(js_expressions="parent.window.location.reload()")
+            )   
             
 
 if submitted or open_in_map:
