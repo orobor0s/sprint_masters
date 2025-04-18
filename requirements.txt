@@ -1,4 +1,4 @@
-requests
 streamlit
+requests
+folium
 streamlit-folium
-streamlit-js-eval
