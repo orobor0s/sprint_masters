@@ -88,4 +88,4 @@ streamlit run app.py
 
 ---
 
-Thank you using **EONET Natural Events Viewer**!
+Thank you for using **EONET Natural Events Viewer**!
