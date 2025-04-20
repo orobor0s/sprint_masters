@@ -4,12 +4,13 @@ import urllib.parse
 import folium
 from folium.plugins import Fullscreen
 import streamlit as st
+from streamlit_javascript import st_javascript
 from streamlit_folium import st_folium
 from streamlit.components.v1 import html
 
 
 # Variables
-ipapi_url = "https://ipapi.co/json"
+ipapi_url = "https://ipapi.co"
 eonet_source_url = "https://eonet.gsfc.nasa.gov/api/v3/sources"
 eonet_categories_url = "https://eonet.gsfc.nasa.gov/api/v3/categories"
 eonet_magnitudes_url = "https://eonet.gsfc.nasa.gov/api/v3/magnitudes"
@@ -175,14 +176,14 @@ def generate_eonet_query(
 
 # API queries
 @st.cache_data
-def get_ip_data():
+def get_ip_data(client_ip):
     '''Gets the client's IP data'''
     # Needs a User-Agent header in the request to circumvent rate limiting
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
 
-    reply_data = requests.get(f"{ipapi_url}", headers=headers)
+    reply_data = requests.get(f"{ipapi_url}/{client_ip}/json", headers=headers)
     if str(reply_data) == "<Response [200]>":
         json_data = reply_data.json()
         json_status = reply_data.status_code
@@ -251,9 +252,9 @@ def generate_folium_map(data):
 
 # Streamlit UI
 st.title("EONET Natural Events Viewer")
+client_ip = st_javascript("await fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => data.ip)")
 
-
-client_data = get_ip_data()
+client_data = get_ip_data(client_ip)
 sources = generate_eonet_dictionaries(eonet_source_url, "sources")
 categories = generate_eonet_dictionaries(eonet_categories_url, "categories")
 magnitudes = generate_eonet_dictionaries(eonet_magnitudes_url, "magnitudes")
