@@ -8,6 +8,37 @@ from streamlit_javascript import st_javascript
 from streamlit.components.v1 import html
 
 
+# Styling
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #F5F5F5; /* Light gray clean background */
+        font-family: 'Arial', sans-serif;
+    }
+    .stApp {
+        background-color: rgba(255, 255, 255, 1); /* Solid white */
+        color: #000000; /* Black text */
+    }
+    h1, h2, h3, h4, h5, h6 {
+        color: #000000; /* Black headers */
+        font-weight: 700;
+    }
+    p, label, .css-1v3fvcr {
+        color: #000000; /* Black labels, paragraph text */
+        font-size: 1.05rem;
+    }
+    .stButton>button {
+        background-color: #000000; /* Black buttons */
+        color: white; /* White text on buttons */
+        font-weight: bold;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 # Variables
 ipapi_url = "https://ipapi.co"
 eonet_source_url = "https://eonet.gsfc.nasa.gov/api/v3/sources"
@@ -19,6 +50,24 @@ default_end_date = datetime.today().strftime('%Y-%m-%d')
 submitted = ""
 query_url = ""
 global_errors = []
+
+
+#Added some styling
+category_labels = {
+    "wildfires": "Wildfires 🔥 — Fires in forests, grasslands",
+    "severeStorms": "Severe Storms ⛈️ — Hurricanes, cyclones, thunderstorms",
+    "volcanoes": "Volcanoes 🌋 — Volcanic eruptions",
+    "floods": "Floods 🌊 — Overflow of water onto land",
+    "earthquakes": "Earthquakes 🌎 — Sudden ground shaking",
+    "seaLakeIce": "Sea and Lake Ice ❄️ — Ice formation and melting",
+    "snow": "Snow ❄️ — Heavy snowfall events",
+    "temperatureExtremes": "Temperature Extremes ♨️ — Heatwaves or cold spells",
+    "drought": "Drought ☀️ — Prolonged dry periods",
+    "dustHaze": "Dust and Haze 🌫️ — Reduced visibility events",
+    "manmade": "Manmade Events ⚙️ — Human-caused incidents",
+    "landslides": "Landslides — Landslides, mudslides, avalanches",
+    "waterColor": "Water Color — Alteration of appearance of water"
+}
 
 
 # Utility
@@ -348,3 +397,6 @@ if submitted:
         # Display raw JSON data
         st.subheader("Raw JSON Data")
         st.json(data)
+else:
+    with open("../README.md", "r", encoding="utf-8") as f:
+        st.markdown(f.read(), unsafe_allow_html=True)
