@@ -24,7 +24,6 @@ Welcome to the **EONET Natural Events Viewer** — a Streamlit app designed to e
 - **Categories:** Choose event types like Wildfires, Volcanoes, Storms, etc.
 - **Status:** Open, Closed, or All events.
 - **Date Range:** Specify a start and end date.
-- **Magnitude Filters:** Set minimum and maximum magnitude levels.
 - **Scale:** Define a radius around your detected location.
 
 ---
