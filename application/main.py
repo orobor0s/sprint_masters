@@ -51,6 +51,22 @@ submitted = ""
 query_url = ""
 global_errors = []
 
+# Mapping for category titles
+category_icons = {
+    "Wildfires": {"icon": "fire", "color": "red"},
+    "Severe Storms": {"icon": "bolt", "color": "orange"},
+    "Volcanoes": {"icon": "warning", "color": "darkred"},
+    "Floods": {"icon": "tint", "color": "blue"},
+    "Earthquakes": {"icon": "globe", "color": "green"},
+    "Sea and Lake Ice": {"icon": "snowflake", "color": "lightblue"},
+    "Snow": {"icon": "snowflake", "color": "lightgrey"},
+    "Temperature Extremes": {"icon": "thermometer-three-quarters", "color": "yellow"},
+    "Drought": {"icon": "sun", "color": "brown"},
+    "Dust and Haze": {"icon": "cloud", "color": "grey"},
+    "Manmade": {"icon": "cog", "color": "purple"},
+    "Landslides": {"icon": "hill-rockslide", "color": "brown"},
+    "Water Color": {"icon": "water", "color": "green"}
+}
 
 #Added some styling
 category_labels = {
@@ -291,6 +307,12 @@ def generate_folium_map(data):
         geometry_type = event["geometry"]["type"]
         coordinates = event["geometry"]["coordinates"]
         title = event["properties"]["title"]
+        
+        # Get the icon and color from the category_icons dictionary
+        category_title = event["properties"]["categories"][0]["title"]
+        category_info = category_icons.get(category_title, {"icon": "info-sign", "color": "blue"})  # Fallback to blue if not found
+        icon_name = category_info["icon"]
+        icon_color = category_info["color"]
 
         if geometry_type == "Point":
             location = coordinates[1], coordinates[0]
@@ -298,7 +320,30 @@ def generate_folium_map(data):
                 location,
                 popup=title,
                 tooltip=title,
-                icon=folium.Icon(color="blue", icon="info-sign")
+                 icon=folium.Icon(color=icon_color, icon=icon_name, prefix="fa")  # Use color and icon from category
+            ).add_to(map)
+
+        elif geometry_type == "Polygon":
+            # GeoJSON expects "coordinates" to be nested as a list of linear rings
+            geojson = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": coordinates
+                },
+                "properties": {
+                    "popup": title
+                }
+            }
+            folium.GeoJson(
+                geojson,
+                tooltip=title,
+                style_function=lambda x: {
+                    "fillColor": icon_color,
+                    "color": "red",
+                    "weight": 2,
+                    "fillOpacity": 0.3
+                }
             ).add_to(map)
 
         elif geometry_type == "LineString":
