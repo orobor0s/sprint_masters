@@ -5,7 +5,6 @@ import folium
 from folium.plugins import Fullscreen
 import streamlit as st
 from streamlit_javascript import st_javascript
-from streamlit_folium import st_folium
 from streamlit.components.v1 import html
 
 
@@ -66,6 +65,15 @@ def calc_bbox(scale):
     min_lat, max_lat = max(-90, float(lat) - scale), min(90, float(lat) + scale)
     return ",".join(map(str, [min_lon, max_lat, max_lon, min_lat]))
 
+def calc_bbox_corners(bbox_string):
+    '''Calculates the four corners of bbox'''
+    bbox_list = list(map(float, bbox_string.split(",")))
+    min_lon, max_lat, max_lon, min_lat = bbox_list[0], bbox_list[1], bbox_list[2], bbox_list[3]
+    upper_left = (max_lat, min_lon)
+    upper_right = (max_lat, max_lon)
+    lower_left = (min_lat, min_lon)
+    lower_right = (min_lat, max_lon)
+    return [upper_left, upper_right, lower_right, lower_left, upper_left]
 
 # Input sanitization
 def sanitize_list_input(input,keyword):
@@ -222,13 +230,13 @@ def get_eonet_data(url):
     else:
         print("Error message: " + json_data["message"])
 
+
 # Map
 @st.cache_resource
 def generate_folium_map(data):
+    '''Generates the folium map centered on the client's location and including events from the data'''
     map = folium.Map(location=(client_data["latitude"],client_data["longitude"]), zoom_start=9)
-
     Fullscreen().add_to(map)
-
     folium.Marker(
         (client_data["latitude"],client_data["longitude"]), 
         popup="User's Location", 
@@ -236,7 +244,15 @@ def generate_folium_map(data):
         icon=folium.Icon(color="red", icon="home")
     ).add_to(map)
 
-    # Draw the bbox with a linestring (?)
+    if show_bbox:
+        bbox_string = sanitize_scale(scale_input)
+        if bbox_string:
+            bbox_corners = calc_bbox_corners(bbox_string["bbox"])
+            folium.PolyLine(
+                bbox_corners,
+                color="red",
+                weight=5
+            ).add_to(map)
 
     for event in data["features"]:
         geometry_type = event["geometry"]["type"]
@@ -295,15 +311,16 @@ def generate_folium_map(data):
     return map
 
 
-# Streamlit UI
-st.title("EONET Natural Events Viewer")
+# Gathering initial data
 client_ip = st_javascript("await fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => data.ip)")
-
 client_data = get_ip_data(client_ip)
 sources = generate_eonet_dictionaries(eonet_source_url, "sources")
 categories = generate_eonet_dictionaries(eonet_categories_url, "categories")
 magnitudes = generate_eonet_dictionaries(eonet_magnitudes_url, "magnitudes")
 
+
+# Streamlit UI
+st.title("EONET Natural Events Viewer")
 
 # User inputs
 with st.sidebar:
@@ -318,6 +335,7 @@ with st.sidebar:
         magMin_input = st.number_input("magMin", min_value=0.0, value=None, placeholder="0.0", step=0.01)
         magMax_input = st.number_input("magMax", min_value=0.0, value=None, placeholder="10.0", step=0.01)
         scale_input = st.number_input("Scale", min_value=1.0, value=None, placeholder="10.0", step=0.01)
+        show_bbox = st.checkbox("Delineate search area")
 
         submitted = st.form_submit_button("Submit")
         reset = st.form_submit_button("Reset")
@@ -337,7 +355,7 @@ with st.sidebar:
                 scale=scale_input
             )   
             
-
+# Displaying data
 if submitted:
     # Output errors
     for error in global_errors:
