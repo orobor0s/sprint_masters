@@ -33,17 +33,17 @@ Welcome to the **EONET Natural Events Viewer** — a Streamlit app designed to e
 
 | Category | Description |
 |:---|:---|
-| 🔥 Wildfires | Fires in forests, grasslands, or natural areas |
-| ⛈️ Severe Storms | Hurricanes, cyclones, thunderstorms |
-| 🌋 Volcanoes | Volcanic eruptions and activity |
-| 🌊 Floods | Overflow of water onto land |
-| 🌎 Earthquakes | Sudden ground shaking |
-| ❄️ Sea and Lake Ice | Ice coverage and melting |
-| ❄️ Snow | Heavy snowfall or snow cover changes |
-| ♨️ Temperature Extremes | Heatwaves and cold spells |
+| 🔥 Wildfires | Wildfires includes all nature of fire, including forest and plains fires, as well as urban and industrial fire events. Fires may be naturally caused or manmade |
+| ⛈️ Severe Storms | Related to the atmospheric aspect of storms (hurricanes, cyclones, tornadoes, etc.). Results of storms may be included under floods, landslides, etc |
+| 🌋 Volcanoes | Related to both the physical effects of an eruption (rock, ash, lava) and the atmospheric (ash and gas plumes) |
+| 🌊 Floods | Related to aspects of actual flooding--e.g., inundation, water extending beyond river and lake extents |
+| 🌎 Earthquakes | Related to all manner of shaking and displacement. Certain aftermath of earthquakes may also be found under landslides and floods |
+| ❄️ Sea and Lake Ice | Related to all ice that resides on oceans and lakes, including sea and lake ice (permanent and seasonal) and icebergs |
+| ❄️ Snow | Related to snow events, particularly extreme/anomalous snowfall in either timing or extent/depth |
+| ♨️ Temperature Extremes | Related to anomalous land temperatures, either heat or cold |
 | ☀️ Drought | Long lasting absence of precipitation affecting agriculture and livestock, and the overall availability of food and water |
 | 🌫️ Dust and Haze | Related to dust storms, air pollution and other non-volcanic aerosols. Volcano-related plumes shall be included with the originating eruption event |
-| ⚙️ Manmade Events | Human-caused incidents like industrial accidents |
+| ⚙️ Manmade Events | Events that have been human-induced and are extreme in their extent |
 | 🗻 Landslides | Related to landslides and variations thereof: mudslides, avalanche |
 | 💧 Water Color | Events that alter the appearance of water: phytoplankton, red tide, algae, sediment, whiting, etc |
 ---
