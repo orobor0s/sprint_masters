@@ -44,7 +44,8 @@ Welcome to the **EONET Natural Events Viewer** — a Streamlit app designed to e
 | ☀️ Drought | Prolonged dry conditions |
 | 🌫️ Dust and Haze | Visibility reduction due to dust, smoke, or haze |
 | ⚙️ Manmade Events | Human-caused incidents like industrial accidents |
-
+| 🗻 Landslides | Related to landslides and variations thereof: mudslides, avalanche |
+| 💧 Water Color | Events that alter the appearance of water: phytoplankton, red tide, algae, sediment, whiting, etc |
 ---
 
 ## 🔇 Disclosure
