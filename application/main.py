@@ -21,6 +21,21 @@ submitted = ""
 query_url = ""
 global_errors = []
 
+# Mapping for category titles
+category_icons = {
+    "Wildfires": {"icon": "fire", "color": "red"},
+    "Severe Storms": {"icon": "bolt", "color": "orange"},
+    "Volcanoes": {"icon": "warning", "color": "darkred"},
+    "Floods": {"icon": "tint", "color": "blue"},
+    "Earthquakes": {"icon": "globe", "color": "green"},
+    "Sea and Lake Ice": {"icon": "snowflake-o", "color": "lightblue"},
+    "Snow": {"icon": "snowflake-o", "color": "lightgrey"},
+    "Temperature Extremes": {"icon": "thermometer-three-quarters", "color": "yellow"},
+    "Drought": {"icon": "sun-o", "color": "brown"},
+    "Dust and Haze": {"icon": "cloud", "color": "grey"},
+    "Manmade Events": {"icon": "cog", "color": "purple"}
+}
+
 # Utility
 def is_float(n):
     '''Check if string is float'''
@@ -227,13 +242,19 @@ def generate_folium_map(data):
         title = event["properties"]["title"]
 
         coordinates = event["geometry"]["coordinates"]
+        # Get the icon and color from the category_icons dictionary
+        category_title = event["properties"]["categories"][0]["title"]
+        category_info = category_icons.get(category_title, {"icon": "info-sign", "color": "blue"})  # Fallback to blue if not found
+        icon_name = category_info["icon"]
+        icon_color = category_info["color"]
+
         if geometry_type == "Point":
             location = coordinates[1], coordinates[0]
             folium.Marker(
                 location,
                 popup=title,
                 tooltip=title,
-                icon=folium.Icon(color="blue", icon="info-sign")
+                 icon=folium.Icon(color=icon_color, icon=icon_name, prefix="fa")  # Use color and icon from category
             ).add_to(map)
 
         elif geometry_type == "LineString":
