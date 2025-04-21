@@ -46,6 +46,7 @@ Welcome to the **EONET Natural Events Viewer** — a Streamlit app designed to e
 | ⚙️ Manmade Events | Events that have been human-induced and are extreme in their extent |
 | 🗻 Landslides | Related to landslides and variations thereof: mudslides, avalanche |
 | 💧 Water Color | Events that alter the appearance of water: phytoplankton, red tide, algae, sediment, whiting, etc |
+
 ---
 
 ## 🔇 Disclosure
