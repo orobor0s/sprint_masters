@@ -80,8 +80,8 @@ category_labels = {
     "drought": "Drought ☀️ — Prolonged dry periods",
     "dustHaze": "Dust and Haze 🌫️ — Reduced visibility events",
     "manmade": "Manmade Events ⚙️ — Human-caused incidents",
-    "landslides": "Landslides — Landslides, mudslides, avalanches",
-    "waterColor": "Water Color — Alteration of appearance of water"
+    "landslides": "Landslides 🗻 — Landslides, mudslides, avalanches",
+    "waterColor": "Water Color 💧 — Alteration of appearance of water"
 }
 
 
