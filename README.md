@@ -41,8 +41,8 @@ Welcome to the **EONET Natural Events Viewer** — a Streamlit app designed to e
 | ❄️ Sea and Lake Ice | Ice coverage and melting |
 | ❄️ Snow | Heavy snowfall or snow cover changes |
 | ♨️ Temperature Extremes | Heatwaves and cold spells |
-| ☀️ Drought | Prolonged dry conditions |
-| 🌫️ Dust and Haze | Visibility reduction due to dust, smoke, or haze |
+| ☀️ Drought | Long lasting absence of precipitation affecting agriculture and livestock, and the overall availability of food and water |
+| 🌫️ Dust and Haze | Related to dust storms, air pollution and other non-volcanic aerosols. Volcano-related plumes shall be included with the originating eruption event |
 | ⚙️ Manmade Events | Human-caused incidents like industrial accidents |
 | 🗻 Landslides | Related to landslides and variations thereof: mudslides, avalanche |
 | 💧 Water Color | Events that alter the appearance of water: phytoplankton, red tide, algae, sediment, whiting, etc |
