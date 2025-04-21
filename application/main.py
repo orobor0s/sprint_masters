@@ -43,7 +43,6 @@ st.markdown(
 ipapi_url = "https://ipapi.co"
 eonet_source_url = "https://eonet.gsfc.nasa.gov/api/v3/sources"
 eonet_categories_url = "https://eonet.gsfc.nasa.gov/api/v3/categories"
-eonet_magnitudes_url = "https://eonet.gsfc.nasa.gov/api/v3/magnitudes"
 eonet_query_url = "https://eonet.gsfc.nasa.gov/api/v3/events/geojson?"
 default_start_date = (datetime.today() - timedelta(days=30)).strftime('%Y-%m-%d')
 default_end_date = datetime.today().strftime('%Y-%m-%d')
@@ -172,22 +171,6 @@ def sanitize_date_range(start, end):
         return {"start": start, "end": end}
     global_errors.append(f"Date range input error: {start} - {end}, each date must be in the YYYY-MM-DD format and the start date must be before or equal to the end date")
     return {}
-
-def sanitize_magID(magID):
-    '''Sanitize magID'''
-    if magID:
-        if magID in magnitudes:
-            return {"magID": magID}
-        global_errors.append(f"magID input error: {magID}, magID must be in {magnitudes.keys()}")
-    return {}
-
-def sanitize_magnitudes(mag, keyword):
-    '''Sanitize magnitudes'''
-    if mag:
-        if is_float(mag) and float(mag) >= 0:
-            return {keyword: mag}
-        global_errors.append(f"{keyword} input error: {mag}, mag must be a float or integer that is greater than or equal to 0")
-    return {}
     
 def sanitize_scale(scale):
     '''Sanitize scale input'''
@@ -217,9 +200,6 @@ def generate_eonet_query(
         limit="",
         start=default_start_date,
         end=default_end_date,
-        magID="",
-        magMin="",
-        magMax="",
         scale=10):
     '''Generates EONET query url based on sanitized user input'''
     # Set parameters
@@ -229,18 +209,6 @@ def generate_eonet_query(
     params.update(sanitize_status(status))
     params.update(sanitize_limit(limit))
     params.update(sanitize_date_range(start, end))
-    params.update(sanitize_magID(magID))
-    magMin_dict = sanitize_magnitudes(magMin, "magMin")
-    magMax_dict = sanitize_magnitudes(magMax, "magMax")
-    if magMin_dict and magMax_dict:
-        if float(magMax_dict["magMax"]) >= float(magMin_dict["magMin"]):
-            params.update(magMin_dict)
-            params.update(magMax_dict)
-        else:
-            global_errors.append(f"magMax {magMax} must be greater than or equal to magMin {magMin}")
-    else:
-        params.update(magMin_dict)
-        params.update(magMax_dict)
     params.update(sanitize_scale(scale))
     
     # Generate API query
@@ -365,26 +333,22 @@ client_ip = st_javascript("await fetch('https://api.ipify.org?format=json').then
 client_data = get_ip_data(client_ip)
 sources = generate_eonet_dictionaries(eonet_source_url, "sources")
 categories = generate_eonet_dictionaries(eonet_categories_url, "categories")
-magnitudes = generate_eonet_dictionaries(eonet_magnitudes_url, "magnitudes")
 
 
 # Streamlit UI
-st.title("EONET Natural Events Viewer")
-
 # User inputs
 with st.sidebar:
     with st.form("Inputs"):
-        source_input = st.multiselect("Sources", list(sources.keys()), default=None, format_func=lambda k: sources[k]["title"])
-        category_input = st.multiselect("Categories", list(categories.keys()), default=None, format_func=lambda k: categories[k]["title"])
-        status_input = st.selectbox("Status", ["open","closed","all"])
-        limit_input = st.number_input("Limit", min_value=1, value=None, placeholder="5")
-        start_input = st.date_input("Start Date", value=default_start_date, format="YYYY-MM-DD")
-        end_input = st.date_input("End Date", value=default_end_date, format="YYYY-MM-DD")
-        magID_input = st.selectbox("magID", list(magnitudes.keys()), index=None, format_func=lambda k: magnitudes[k]["name"], placeholder="Choose an option")
-        magMin_input = st.number_input("magMin", min_value=0.0, value=None, placeholder="0.0", step=0.01)
-        magMax_input = st.number_input("magMax", min_value=0.0, value=None, placeholder="10.0", step=0.01)
-        scale_input = st.number_input("Scale", min_value=1.0, value=None, placeholder="10.0", step=0.01)
-        show_bbox = st.checkbox("Delineate search area")
+        st.markdown("<h2 style='color:#333'>🌐 Filter Natural Events</h2>", unsafe_allow_html=True)
+
+        source_input = st.multiselect("Data Sources", list(sources.keys()), default=None, format_func=lambda k: sources[k]["title"])
+        category_input = st.multiselect("Event Types", list(category_labels.keys()), format_func=lambda k: category_labels[k].split(" — ")[0])
+        status_input = st.selectbox("Event Status", ["open","closed","all"])
+        limit_input = st.number_input("Maximum Number of Events", min_value=1, value=None, placeholder="5")
+        start_input = st.date_input("Start of Date Range", value=default_start_date, format="YYYY-MM-DD")
+        end_input = st.date_input("End of Date Range", value=default_end_date, format="YYYY-MM-DD")
+        scale_input = st.number_input("Search Area Scale", min_value=1.0, value=None, placeholder="10.0", step=0.01)
+        show_bbox = st.checkbox("Delineate Search Area")
 
         submitted = st.form_submit_button("Submit")
         reset = st.form_submit_button("Reset")
@@ -398,14 +362,12 @@ with st.sidebar:
                 limit=limit_input,
                 start=str(start_input),
                 end=str(end_input),
-                magID=magID_input,
-                magMin=magMin_input,
-                magMax=magMax_input,
                 scale=scale_input
             )   
             
 # Displaying data
 if submitted:
+    st.title("🌍 EONET Natural Events Viewer")
     # Output errors
     for error in global_errors:
         st.error(error)
