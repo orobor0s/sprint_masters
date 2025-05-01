@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 import requests
 import urllib.parse
 import folium
@@ -380,6 +381,7 @@ if submitted:
             map = generate_folium_map(data)
             html_string = map._repr_html_()  # Get map HTML as string
             html(html_string, height=500, width=700)
+            export = st.download_button("Export Data", json.dumps(data, indent=2), file_name="EONET-data", mime="application/json", on_click="ignore")
             event_set = set()
             for event in data["features"]:
                 properties = event["properties"]
