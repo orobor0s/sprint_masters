@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
-import json
-import requests
-import urllib.parse
 import folium
 from folium.plugins import Fullscreen
+import json
+import math
+import requests
 import streamlit as st
 from streamlit_javascript import st_javascript
 from streamlit.components.v1 import html
+import urllib.parse
 
 
 # Styling
@@ -38,7 +39,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
 
 # Variables
 ipapi_url = "https://ipapi.co"
@@ -123,6 +123,40 @@ def calc_bbox_corners(bbox_string):
     lower_left = (min_lat, min_lon)
     lower_right = (min_lat, max_lon)
     return [upper_left, upper_right, lower_right, lower_left, upper_left]
+
+def haversine_distance(coord1, coord2):
+    """
+    Calculate the great-circle distance between two points on the Earth using the Haversine formula.
+
+    Parameters:
+        coord1: tuple of float (lat1, lon1) in decimal degrees
+        coord2: tuple of float (lat2, lon2) in decimal degrees
+
+    Returns:
+        Distance in kilometers (float)
+    """
+    # Radius of the Earth in kilometers
+    R = 6371.0
+
+    lat1, lon1 = coord1
+    lat2, lon2 = coord2
+
+    # Convert latitude and longitude from degrees to radians
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    # Haversine formula
+    a = math.sin(delta_phi / 2)**2 + \
+        math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2)**2
+
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    # Distance in kilometers
+    distance = R * c
+    return distance
+
 
 # Input sanitization
 def sanitize_list_input(input,keyword):
@@ -249,14 +283,31 @@ def get_eonet_data(url):
         print("Error message: " + json_data["message"])
 
 
-# Map
+# Augment data
+@st.cache_data
+def augment_data(data):
+    '''Adds distance from user to point data'''
+    client_location = (client_data["latitude"],client_data["longitude"])
+    for event in data:
+        geometry_type = event["geometry"]["type"]
+        coordinates = event["geometry"]["coordinates"]
+        if geometry_type == "Point":
+            event_location = coordinates[1], coordinates[0]
+            distance = haversine_distance(client_location, event_location)
+            event["properties"]["distance"] = distance
+        
+    return data
+
+
+# Generate map
 @st.cache_resource
-def generate_folium_map(data):
+def generate_folium_map(data,show_bbox):
     '''Generates the folium map centered on the client's location and including events from the data'''
-    map = folium.Map(location=(client_data["latitude"],client_data["longitude"]), zoom_start=9)
+    client_location = (client_data["latitude"],client_data["longitude"])
+    map = folium.Map(location=client_location, zoom_start=9)
     Fullscreen().add_to(map)
     folium.Marker(
-        (client_data["latitude"],client_data["longitude"]), 
+        client_location, 
         popup="User's Location", 
         tooltip="User's Location", 
         icon=folium.Icon(color="red", icon="home")
@@ -272,7 +323,7 @@ def generate_folium_map(data):
                 weight=5
             ).add_to(map)
 
-    for event in data["features"]:
+    for event in data:
         geometry_type = event["geometry"]["type"]
         coordinates = event["geometry"]["coordinates"]
         title = event["properties"]["title"]
@@ -284,10 +335,11 @@ def generate_folium_map(data):
         icon_color = category_info["color"]
 
         if geometry_type == "Point":
-            location = coordinates[1], coordinates[0]
+            event_location = coordinates[1], coordinates[0]
+            
             folium.Marker(
-                location,
-                popup=title,
+                event_location,
+                popup=f"{title}<br>Category: {category_title}<br>Distance from user: {round(event["properties"]["distance"], 2)}km<br>",
                 tooltip=title,
                  icon=folium.Icon(color=icon_color, icon=icon_name, prefix="fa")  # Use color and icon from category
             ).add_to(map)
@@ -330,10 +382,10 @@ def generate_folium_map(data):
 
 
 # Gathering initial data
-client_ip = st_javascript("await fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => data.ip)")
-client_data = get_ip_data(client_ip)
-sources = generate_eonet_dictionaries(eonet_source_url, "sources")
-categories = generate_eonet_dictionaries(eonet_categories_url, "categories")
+client_ip = st_javascript("await fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => data.ip)") # Get client IP
+client_data = get_ip_data(client_ip) # Get client location
+sources = generate_eonet_dictionaries(eonet_source_url, "sources") # Generate list of EONET sources
+categories = generate_eonet_dictionaries(eonet_categories_url, "categories") # Generate list of EONET categories
 
 
 # Streamlit UI
@@ -346,8 +398,8 @@ with st.sidebar:
         category_input = st.multiselect("Event Types", list(category_labels.keys()), format_func=lambda k: category_labels[k].split(" — ")[0])
         status_input = st.selectbox("Event Status", ["open","closed","all"])
         limit_input = st.number_input("Maximum Number of Events", min_value=1, value=None, placeholder="5")
-        start_input = st.date_input("Start of Date Range", value=default_start_date, format="YYYY-MM-DD")
-        end_input = st.date_input("End of Date Range", value=default_end_date, format="YYYY-MM-DD")
+        start_input = st.date_input("Start of Date Range", value=default_start_date, min_value="2002-01-04", max_value=default_end_date, format="YYYY-MM-DD")
+        end_input = st.date_input("End of Date Range", value=default_end_date, min_value="2002-01-04", max_value=default_end_date, format="YYYY-MM-DD")
         scale_input = st.number_input("Search Area Scale", min_value=1.0, value=None, placeholder="10.0", step=0.01)
         show_bbox = st.checkbox("Delineate Search Area")
 
@@ -372,40 +424,43 @@ if submitted:
     # Output errors
     for error in global_errors:
         st.error(error)
-    # Get user location
     if client_data:
         st.write(f"Your detected location: {client_data.get('city', 'Unknown')}, {client_data.get('region', 'Unknown')}, {client_data.get('country_name', 'Unknown')}")
         st.write(f"Query URL: {query_url}")  # Show the API request URL
         data = get_eonet_data(query_url)
         if data and "features" in data:
-            map = generate_folium_map(data)
-            html_string = map._repr_html_()  # Get map HTML as string
+            data_copy = data["features"][:]
+            augmented_data = augment_data(data_copy)
+            map = generate_folium_map(augmented_data,show_bbox)
+            html_string = map.get_root().render()
             html(html_string, height=500, width=700)
-            export = st.download_button("Export Data", json.dumps(data, indent=2), file_name="EONET-data", mime="application/json", on_click="ignore")
+            st.subheader("Raw JSON Data")
+            export = st.download_button("Export Raw JSON Data", json.dumps(data, indent=2), file_name="raw-eonet-json-data.json", mime="application/json", on_click="ignore")
+            st.json(data)
+            st.markdown("")
+            st.markdown("")
+            st.header("EONET Events")
+            st.markdown("---")
             event_set = set()
-            for event in data["features"]:
+            for event in augmented_data:
                 properties = event["properties"]
                 if properties["id"] not in event_set:
                     event_set.add(properties["id"])
                     geometry = event["geometry"]
-
                     st.subheader(properties["title"])
                     st.write(f"Category: {properties["categories"][0]["title"]}")
                     try:
                         st.write(f"Date: {properties['date']}")
                         st.write(f"Location: {geometry['coordinates']}")
+                        st.write(f"Distance from user: {round(event["properties"]["distance"], 2)}km")
                     except:
                         st.write(f"Most recent date: {properties["geometryDates"][-1]}")
                         st.write(f"Last location: {geometry['coordinates'][-1]}")
-                        
+                        st.write(f"Distance from user: {round(haversine_distance((client_data["latitude"],client_data["longitude"]),geometry["coordinates"][-1]), 2)}km")
                     st.write(f"[More Info]({properties['link']})")
                     st.markdown("---")
         else:
             st.error("No data found or API request failed.")
-        
-        # Display raw JSON data
-        st.subheader("Raw JSON Data")
-        st.json(data)
 else:
     with open("README.md", "r", encoding="utf-8") as f:
         st.markdown(f.read(), unsafe_allow_html=True)

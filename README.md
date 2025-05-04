@@ -6,13 +6,14 @@ Welcome to the **EONET Natural Events Viewer** — a Streamlit app designed to e
 
 ## 🔗 Live Sources
 - **EONET API:** https://eonet.gsfc.nasa.gov/api/v3/events/geojson
+- **IPIFY API:** https://api.ipify.org?format=json
 - **IPAPI Geolocation:** https://ipapi.co/json
 
 ---
 
 ## 🔍 Features
 - **Auto-Detect Location:** Instantly identifies your current location using your IP address.
-- **Smart Filters:** Search by event type, source agency, event status, date range, magnitude, or bounding box.
+- **Smart Filters:** Search by event type, source agency, event status, date range, and / or bounding box.
 - **Interactive Map:** Visualize natural events geographically with folium maps.
 - **Sidebar Panel:** Easy input of filters and exploration of event categories.
 - **Dynamic JSON Data:** Full raw API data available for advanced users.
@@ -24,7 +25,7 @@ Welcome to the **EONET Natural Events Viewer** — a Streamlit app designed to e
 - **Categories:** Choose event types like Wildfires, Volcanoes, Storms, etc.
 - **Status:** Open, Closed, or All events.
 - **Date Range:** Specify a start and end date.
-- **Scale:** Define a radius around your detected location.
+- **Scale:** Define the scale of the bounding box in terms of degrees around your detected location.
 
 ---
 
@@ -83,6 +84,7 @@ streamlit run app.py
 
 ## 💛 Acknowledgments
 - NASA Earth Observatory Natural Event Tracker (EONET)
+- IPIFY API
 - IPAPI Geolocation API
 - Streamlit
 - Folium and Streamlit-Folium integration for mapping
