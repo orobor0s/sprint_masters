@@ -449,14 +449,19 @@ if submitted:
                     geometry = event["geometry"]
                     st.subheader(properties["title"])
                     st.write(f"Category: {properties["categories"][0]["title"]}")
-                    try:
+                    if event["geometry"]["type"] == "Point":
                         st.write(f"Date: {properties['date']}")
-                        st.write(f"Location: {geometry['coordinates']}")
+                        st.write(f"Location: {geometry['coordinates'][1]},{geometry['coordinates'][0]}")
                         st.write(f"Distance from user: {round(event["properties"]["distance"], 2)}km")
-                    except:
+                    elif event["geometry"]["type"] == "LineString":
                         st.write(f"Most recent date: {properties["geometryDates"][-1]}")
-                        st.write(f"Last location: {geometry['coordinates'][-1]}")
-                        st.write(f"Distance from user: {round(haversine_distance((client_data["latitude"],client_data["longitude"]),geometry["coordinates"][-1]), 2)}km")
+                        st.write(f"Last location: {geometry['coordinates'][-1][1]},{geometry['coordinates'][-1][0]}")
+                        st.write(f"Distance from user: {round(haversine_distance((client_data["latitude"],client_data["longitude"]),(geometry["coordinates"][-1][1],geometry['coordinates'][-1][0])), 2)}km")
+                    elif event["geometry"]["type"] == "Polygon":
+                        st.write(f"Date: {properties['date']}")
+                        st.write("Boundary points:")
+                        for point in geometry["coordinates"][0][:-1]:
+                            st.write(f"- {point[1]}, {point[0]}")
                     st.write(f"[More Info]({properties['link']})")
                     st.markdown("---")
         else:
