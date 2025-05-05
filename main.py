@@ -11,34 +11,34 @@ import urllib.parse
 
 
 # Styling
-st.markdown(
-    """
-    <style>
-    body {
-        background-color: #F5F5F5; /* Light gray clean background */
-        font-family: 'Arial', sans-serif;
-    }
-    .stApp {
-        background-color: rgba(255, 255, 255, 1); /* Solid white */
-        color: #000000; /* Black text */
-    }
-    h1, h2, h3, h4, h5, h6 {
-        color: #000000; /* Black headers */
-        font-weight: 700;
-    }
-    p, label, .css-1v3fvcr {
-        color: #000000; /* Black labels, paragraph text */
-        font-size: 1.05rem;
-    }
-    .stButton>button {
-        background-color: #000000; /* Black buttons */
-        color: white; /* White text on buttons */
-        font-weight: bold;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# st.markdown(
+#     """
+#     <style>
+#     body {
+#         background-color: #F5F5F5; /* Light gray clean background */
+#         font-family: 'Arial', sans-serif;
+#     }
+#     .stApp {
+#         background-color: rgba(255, 255, 255, 1); /* Solid white */
+#         color: #000000; /* Black text */
+#     }
+#     h1, h2, h3, h4, h5, h6 {
+#         color: #000000; /* Black headers */
+#         font-weight: 700;
+#     }
+#     p, label, .css-1v3fvcr {
+#         color: #000000; /* Black labels, paragraph text */
+#         font-size: 1.05rem;
+#     }
+#     .stButton>button {
+#         background-color: #000000; /* Black buttons */
+#         color: white; /* White text on buttons */
+#         font-weight: bold;
+#     }
+#     </style>
+#     """,
+#     unsafe_allow_html=True
+# )
 
 # Variables
 ipapi_url = "https://ipapi.co"
@@ -392,7 +392,7 @@ categories = generate_eonet_dictionaries(eonet_categories_url, "categories") # G
 # User inputs
 with st.sidebar:
     with st.form("Inputs"):
-        st.markdown("<h2 style='color:#333'>🌐 Filter Natural Events</h2>", unsafe_allow_html=True)
+        st.markdown("🌐 Filter Natural Events")
 
         source_input = st.multiselect("Data Sources", list(sources.keys()), default=None, format_func=lambda k: sources[k]["title"])
         category_input = st.multiselect("Event Types", list(category_labels.keys()), format_func=lambda k: category_labels[k].split(" — ")[0])
