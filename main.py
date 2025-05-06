@@ -47,7 +47,7 @@ category_labels = {
     "earthquakes": "Earthquakes 🌎 — Sudden ground shaking",
     "seaLakeIce": "Sea and Lake Ice ❄️ — Ice formation and melting",
     "snow": "Snow ❄️ — Heavy snowfall events",
-    "temperatureExtremes": "Temperature Extremes ♨️ — Heatwaves or cold spells",
+    "tempExtremes": "Temperature Extremes ♨️ — Heatwaves or cold spells",
     "drought": "Drought ☀️ — Prolonged dry periods",
     "dustHaze": "Dust and Haze 🌫️ — Reduced visibility events",
     "manmade": "Manmade Events ⚙️ — Human-caused incidents",
@@ -95,16 +95,7 @@ def calc_bbox_corners(bbox_string):
     return [upper_left, upper_right, lower_right, lower_left, upper_left]
 
 def haversine_distance(coord1, coord2):
-    '''
-    Calculate the great-circle distance between two points on the Earth using the Haversine formula.
-
-    Parameters:
-        coord1: tuple of float (lat1, lon1) in decimal degrees
-        coord2: tuple of float (lat2, lon2) in decimal degrees
-
-    Returns:
-        Distance in kilometers (float)
-    '''
+    '''Calculate the great-circle distance between two points on the Earth using the Haversine formula'''
     # Radius of the Earth in kilometers
     R = 6371.0
 
@@ -190,6 +181,7 @@ def sanitize_scale(scale):
 
 
 # EONET enabling infrastructure
+@st.cache_data
 def generate_eonet_dictionaries(url,keyword):
     '''Generates a dictionary that contains eonet sources or categories'''
     eonet_data = get_eonet_data(url)[keyword]
