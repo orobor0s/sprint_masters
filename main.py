@@ -10,36 +10,6 @@ from streamlit.components.v1 import html
 import urllib.parse
 
 
-# Styling
-# st.markdown(
-#     """
-#     <style>
-#     body {
-#         background-color: #F5F5F5; /* Light gray clean background */
-#         font-family: 'Arial', sans-serif;
-#     }
-#     .stApp {
-#         background-color: rgba(255, 255, 255, 1); /* Solid white */
-#         color: #000000; /* Black text */
-#     }
-#     h1, h2, h3, h4, h5, h6 {
-#         color: #000000; /* Black headers */
-#         font-weight: 700;
-#     }
-#     p, label, .css-1v3fvcr {
-#         color: #000000; /* Black labels, paragraph text */
-#         font-size: 1.05rem;
-#     }
-#     .stButton>button {
-#         background-color: #000000; /* Black buttons */
-#         color: white; /* White text on buttons */
-#         font-weight: bold;
-#     }
-#     </style>
-#     """,
-#     unsafe_allow_html=True
-# )
-
 # Variables
 ipapi_url = "https://ipapi.co"
 eonet_source_url = "https://eonet.gsfc.nasa.gov/api/v3/sources"
@@ -125,7 +95,7 @@ def calc_bbox_corners(bbox_string):
     return [upper_left, upper_right, lower_right, lower_left, upper_left]
 
 def haversine_distance(coord1, coord2):
-    """
+    '''
     Calculate the great-circle distance between two points on the Earth using the Haversine formula.
 
     Parameters:
@@ -134,7 +104,7 @@ def haversine_distance(coord1, coord2):
 
     Returns:
         Distance in kilometers (float)
-    """
+    '''
     # Radius of the Earth in kilometers
     R = 6371.0
 
@@ -157,6 +127,9 @@ def haversine_distance(coord1, coord2):
     distance = R * c
     return distance
 
+def filter_linstring(event):
+    '''Filters LineString geometry type events'''
+    return event["geometry"]["type"] != "LineString"
 
 # Input sanitization
 def sanitize_list_input(input,keyword):
@@ -336,10 +309,16 @@ def generate_folium_map(data,show_bbox):
 
         if geometry_type == "Point":
             event_location = coordinates[1], coordinates[0]
-            
+            popup_list = [
+                title,
+                f"Category: {category_title}",
+                f"Distance from user: {round(event["properties"]["distance"], 2)}km",
+                f'<a target="_blank" rel="noopener noreferrer" href={event["properties"]['link']}>Raw JSON</a>'
+            ]
+
             folium.Marker(
                 event_location,
-                popup=f"{title}<br>Category: {category_title}<br>Distance from user: {round(event["properties"]["distance"], 2)}km<br>",
+                popup="<br>".join(popup_list),
                 tooltip=title,
                  icon=folium.Icon(color=icon_color, icon=icon_name, prefix="fa")  # Use color and icon from category
             ).add_to(map)
@@ -393,7 +372,6 @@ categories = generate_eonet_dictionaries(eonet_categories_url, "categories") # G
 with st.sidebar:
     with st.form("Inputs"):
         st.markdown("🌐 Filter Natural Events")
-
         source_input = st.multiselect("Data Sources", list(sources.keys()), default=None, format_func=lambda k: sources[k]["title"])
         category_input = st.multiselect("Event Types", list(category_labels.keys()), format_func=lambda k: category_labels[k].split(" — ")[0])
         status_input = st.selectbox("Event Status", ["open","closed","all"])
@@ -417,7 +395,7 @@ with st.sidebar:
                 end=str(end_input),
                 scale=scale_input
             )   
-            
+
 # Displaying data
 if submitted:
     st.title("🌍 EONET Natural Events Viewer")
@@ -434,15 +412,16 @@ if submitted:
             map = generate_folium_map(augmented_data,show_bbox)
             html_string = map.get_root().render()
             html(html_string, height=500, width=700)
-            st.subheader("Raw JSON Data")
             export = st.download_button("Export Raw JSON Data", json.dumps(data, indent=2), file_name="raw-eonet-json-data.json", mime="application/json", on_click="ignore")
-            st.json(data)
             st.markdown("")
             st.markdown("")
             st.header("EONET Events")
+            st.write("Sorted by most recent date.")
             st.markdown("---")
+            filtered_data = filter(filter_linstring, augmented_data)
+            sorted_data = sorted(filtered_data, key=lambda x: x["properties"]["date"], reverse=True)
             event_set = set()
-            for event in augmented_data:
+            for event in sorted_data:
                 properties = event["properties"]
                 if properties["id"] not in event_set:
                     event_set.add(properties["id"])
@@ -451,19 +430,19 @@ if submitted:
                     st.write(f"Category: {properties["categories"][0]["title"]}")
                     if event["geometry"]["type"] == "Point":
                         st.write(f"Date: {properties['date']}")
-                        st.write(f"Location: {geometry['coordinates'][1]},{geometry['coordinates'][0]}")
+                        st.write(f"Location: {geometry['coordinates'][1]}, {geometry['coordinates'][0]}")
                         st.write(f"Distance from user: {round(event["properties"]["distance"], 2)}km")
-                    elif event["geometry"]["type"] == "LineString":
-                        st.write(f"Most recent date: {properties["geometryDates"][-1]}")
-                        st.write(f"Last location: {geometry['coordinates'][-1][1]},{geometry['coordinates'][-1][0]}")
-                        st.write(f"Distance from user: {round(haversine_distance((client_data["latitude"],client_data["longitude"]),(geometry["coordinates"][-1][1],geometry['coordinates'][-1][0])), 2)}km")
                     elif event["geometry"]["type"] == "Polygon":
                         st.write(f"Date: {properties['date']}")
                         st.write("Boundary points:")
                         for point in geometry["coordinates"][0][:-1]:
                             st.write(f"- {point[1]}, {point[0]}")
-                    st.write(f"[More Info]({properties['link']})")
+                    if properties["magnitudeValue"] != "null" and properties["magnitudeValue"] != None:
+                        st.write(f"Magnitude: {properties["magnitudeValue"]} {properties["magnitudeUnit"]}")
+                    st.write(f"[Raw JSON]({properties['link']})")
                     st.markdown("---")
+            st.subheader("Raw JSON Data")
+            st.json(data)
         else:
             st.error("No data found or API request failed.")
 else:
